@@ -1,0 +1,32 @@
+# === Ambiente virtual (se recrea con requirements.txt) ===
+.venv/
+venv/
+env/
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# === Llaves y credenciales — NUNCA subir ===
+*.pem
+*.ppk
+*.key
+.env
+credentials*
+
+# === Datos crudos / pesados (se comparten por otro medio, NO por Git) ===
+# Se sube SOLO datos_limpios.csv. El CSV original grande NO.
+*_crudo.csv
+ministerio_de_hacienda_datos.csv
+datos/crudo/
+*.zip
+
+# === Sistema operativo ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Editor ===
+.vscode/
