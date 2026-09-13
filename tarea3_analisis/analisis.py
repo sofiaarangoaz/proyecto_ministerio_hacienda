@@ -4,9 +4,13 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
+from scipy import stats
+import seaborn as sns
+from statsmodels.formula.api import ols
+from statsmodels.stats.anova import anova_lm
 
 #cargar los datos
-df = pd.read_csv("../tarea2_ingenieria_datos/Datos_MinisterioHacienda.csv")
+df = pd.read_csv("tarea2_ingenieria_datos/Datos_MinisterioHacienda.csv")
 
 print("Dimensión de los datos originales:")
 print(df.shape)
@@ -337,3 +341,100 @@ if p_valor < 0.05:
     print("Existe una relación significativa entre el año y el valor de los contratos.")
 else:
     print("No existe una relación significativa entre el año y el valor de los contratos.")
+
+#JSQO
+# % de ejecución = pagado / contratado * 100 (excluye contratos con valor 0)
+valor_valido = df["valor_del_contrato"].where(~df["valor_contrato_cero"], np.nan)
+df["pct_ejecucion"] = (df["valor_pagado"] / valor_valido) * 100
+
+# Estadísticas descriptivas
+print(df["pct_ejecucion"].describe().round(2))
+ 
+for grupo in ["es_pyme", "es_grupo", "g_nero_representante_legal"]:
+    print(f"\n% de ejecución por {grupo}")
+    print(df.groupby(grupo)["pct_ejecucion"].agg(["count", "mean", "median", "std"]).round(2))
+ 
+pivot = df.pivot_table(index="es_pyme", columns="g_nero_representante_legal",
+                        values="pct_ejecucion", aggfunc="mean").round(2)
+print("\n% de ejecución promedio: PyME x Género")
+print(pivot)
+
+# --- Visualizaciones ---
+fig, ax = plt.subplots(figsize=(7, 5))
+sns.histplot(df["pct_ejecucion"].dropna(), bins=50, kde=True, ax=ax, color="#4C72B0")
+ax.axvline(100, color="black", linestyle="--", linewidth=1, label="100% ejecutado")
+ax.legend()
+ax.set_title("Distribución del % de ejecución presupuestal")
+fig.tight_layout()
+plt.show()
+ 
+fig, ax = plt.subplots(figsize=(6, 5))
+sns.boxplot(data=df, x="es_pyme", y="pct_ejecucion", ax=ax, showfliers=False)
+ax.set_title("% de ejecución según condición PyME")
+fig.tight_layout()
+plt.show()
+ 
+fig, ax = plt.subplots(figsize=(6, 5))
+sns.boxplot(data=df, x="es_grupo", y="pct_ejecucion", ax=ax, showfliers=False)
+ax.set_title("% de ejecución según si es consorcio/grupo")
+fig.tight_layout()
+plt.show()
+ 
+fig, ax = plt.subplots(figsize=(7, 5))
+orden = ["Hombre", "Mujer", "No definido"]
+sns.boxplot(data=df, x="g_nero_representante_legal", y="pct_ejecucion", order=orden, ax=ax, showfliers=False)
+ax.set_title("% de ejecución según género del representante legal")
+fig.tight_layout()
+plt.show()
+ 
+fig, ax = plt.subplots(figsize=(9, 6))
+sns.violinplot(
+    data=df[df["g_nero_representante_legal"] != "No definido"],
+    x="g_nero_representante_legal", y="pct_ejecucion",
+    hue="es_pyme", split=True, cut=0, ax=ax
+)
+ax.set_title("% de ejecución: Género x Condición PyME")
+fig.tight_layout()
+plt.show()
+ 
+fig, ax = plt.subplots(figsize=(7, 5))
+sns.heatmap(pivot, annot=True, fmt=".1f", cmap="YlGnBu", ax=ax)
+ax.set_title("% de ejecución promedio: PyME x Género")
+fig.tight_layout()
+plt.show()
+
+# --- Pruebas estadísticas ---
+y = df["pct_ejecucion"].dropna()
+stat_norm, p_norm = stats.normaltest(y)
+print(f"\nNormalidad (D'Agostino): p-valor = {p_norm:.4g}")
+ 
+g1 = df.loc[df["es_pyme"] == "Si", "pct_ejecucion"].dropna()
+g2 = df.loc[df["es_pyme"] == "No", "pct_ejecucion"].dropna()
+u, p = stats.mannwhitneyu(g1, g2, alternative="two-sided")
+print(f"\nPyME vs No PyME: Mann-Whitney p-valor = {p:.4g} "
+      f"(mediana PyME = {g1.median():.2f}%, No PyME = {g2.median():.2f}%)")
+ 
+g1 = df.loc[df["es_grupo"] == "Si", "pct_ejecucion"].dropna()
+g2 = df.loc[df["es_grupo"] == "No", "pct_ejecucion"].dropna()
+u, p = stats.mannwhitneyu(g1, g2, alternative="two-sided")
+print(f"Consorcio vs individual: Mann-Whitney p-valor = {p:.4g} "
+      f"(mediana Grupo = {g1.median():.2f}%, Individual = {g2.median():.2f}%)")
+ 
+grupos_genero = [
+    df.loc[df["g_nero_representante_legal"] == g, "pct_ejecucion"].dropna()
+    for g in df["g_nero_representante_legal"].unique()
+]
+h, p = stats.kruskal(*grupos_genero)
+print(f"Género (Kruskal-Wallis): p-valor = {p:.4g}")
+ 
+g1 = df.loc[df["g_nero_representante_legal"] == "Hombre", "pct_ejecucion"].dropna()
+g2 = df.loc[df["g_nero_representante_legal"] == "Mujer", "pct_ejecucion"].dropna()
+u, p = stats.mannwhitneyu(g1, g2, alternative="two-sided")
+print(f"Hombre vs Mujer: Mann-Whitney p-valor = {p:.4g} "
+      f"(mediana Hombre = {g1.median():.2f}%, Mujer = {g2.median():.2f}%)")
+ 
+datos_validos = df[df["g_nero_representante_legal"] != "No definido"].copy()
+modelo = ols("pct_ejecucion ~ C(es_pyme) * C(g_nero_representante_legal)", data=datos_validos).fit()
+tabla_anova = anova_lm(modelo, typ=2)
+print("\nANOVA de dos vías (PyME x Género):")
+print(tabla_anova.round(4))
