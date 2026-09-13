@@ -3,6 +3,8 @@
 #Importar librerías necesarias
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")  # guarda las graficas como PNG en vez de abrir ventanas
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr
 from scipy import stats
@@ -35,7 +37,7 @@ plt.xlabel("Valor del contrato")
 plt.ylabel("Frecuencia")
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_01.png", dpi=120, bbox_inches="tight"); plt.close()
 
 #Se aplica una transformación logarítmica para visualizar mejor valores extremos
 plt.figure(figsize=(10, 6))
@@ -51,7 +53,7 @@ plt.xlabel("Log(1 + valor del contrato)")
 plt.ylabel("Frecuencia")
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_02.png", dpi=120, bbox_inches="tight"); plt.close()
 
 
 #Boxplot para identificar dispersión y valores atípicos
@@ -66,7 +68,7 @@ plt.title("Diagrama de caja del valor de los contratos")
 plt.xlabel("Log(1 + valor del contrato)")
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_03.png", dpi=120, bbox_inches="tight"); plt.close()
 
 
 #Ahora se busca saber cuanta plata contrató el ministerio cada año, 
@@ -105,7 +107,7 @@ plt.ylabel("Valor contratado (miles de millones de pesos)")
 plt.xticks(rotation=45)
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_04.png", dpi=120, bbox_inches="tight"); plt.close()
 
 
 #Se analizaron en que tipo de contratos se concentra el dinero contratado por el ministerio, 
@@ -165,7 +167,7 @@ plt.xlabel("Valor contratado (miles de millones de pesos)")
 plt.ylabel("Tipo de contrato")
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_05.png", dpi=120, bbox_inches="tight"); plt.close()
 
 #Relación entre año y tipo de contrato, 
 #Se agrupa por año y tipo de contrato y se calcula el valor total contratado.
@@ -247,7 +249,7 @@ plt.xlabel("Año")
 plt.ylabel("Tipo de contrato")
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_06.png", dpi=120, bbox_inches="tight"); plt.close()
 
 #Diagrama de violin para comparar la distribución del valor de los contratos
 #para los tipos más frecuentes
@@ -278,7 +280,7 @@ plt.xlabel("Tipo de contrato")
 plt.ylabel("Log(1 + valor del contrato)")
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_07.png", dpi=120, bbox_inches="tight"); plt.close()
 
 
 #Diagrama de dispersión para ver la relación entre el año y el valor de los contratos
@@ -296,7 +298,7 @@ plt.xlabel("Año")
 plt.ylabel("Log(1 + valor del contrato)")
 
 plt.tight_layout()
-plt.show()
+plt.savefig("grafica_08.png", dpi=120, bbox_inches="tight"); plt.close()
 
 
 #Correlación entre el año y el valor del contrato
@@ -343,26 +345,26 @@ ax.axvline(100, color="black", linestyle="--", linewidth=1, label="100% ejecutad
 ax.legend()
 ax.set_title("Distribución del % de ejecución presupuestal")
 fig.tight_layout()
-plt.show()
+plt.savefig("grafica_09.png", dpi=120, bbox_inches="tight"); plt.close()
  
 fig, ax = plt.subplots(figsize=(6, 5))
 sns.boxplot(data=df, x="es_pyme", y="pct_ejecucion", ax=ax, showfliers=False)
 ax.set_title("% de ejecución según condición PyME")
 fig.tight_layout()
-plt.show()
+plt.savefig("grafica_10.png", dpi=120, bbox_inches="tight"); plt.close()
  
 fig, ax = plt.subplots(figsize=(6, 5))
 sns.boxplot(data=df, x="es_grupo", y="pct_ejecucion", ax=ax, showfliers=False)
 ax.set_title("% de ejecución según si es consorcio/grupo")
 fig.tight_layout()
-plt.show()
+plt.savefig("grafica_11.png", dpi=120, bbox_inches="tight"); plt.close()
  
 fig, ax = plt.subplots(figsize=(7, 5))
 orden = ["Hombre", "Mujer", "No definido"]
 sns.boxplot(data=df, x="g_nero_representante_legal", y="pct_ejecucion", order=orden, ax=ax, showfliers=False)
 ax.set_title("% de ejecución según género del representante legal")
 fig.tight_layout()
-plt.show()
+plt.savefig("grafica_12.png", dpi=120, bbox_inches="tight"); plt.close()
  
 fig, ax = plt.subplots(figsize=(9, 6))
 sns.violinplot(
@@ -372,13 +374,13 @@ sns.violinplot(
 )
 ax.set_title("% de ejecución: Género x Condición PyME")
 fig.tight_layout()
-plt.show()
+plt.savefig("grafica_13.png", dpi=120, bbox_inches="tight"); plt.close()
  
 fig, ax = plt.subplots(figsize=(7, 5))
 sns.heatmap(pivot, annot=True, fmt=".1f", cmap="YlGnBu", ax=ax)
 ax.set_title("% de ejecución promedio: PyME x Género")
 fig.tight_layout()
-plt.show()
+plt.savefig("grafica_14.png", dpi=120, bbox_inches="tight"); plt.close()
 
 # --- Pruebas estadísticas ---
 y = df["pct_ejecucion"].dropna()
@@ -415,3 +417,66 @@ modelo = ols("pct_ejecucion ~ C(es_pyme) * C(g_nero_representante_legal)", data=
 tabla_anova = anova_lm(modelo, typ=2)
 print("\nANOVA de dos vías (PyME x Género):")
 print(tabla_anova.round(4))
+
+######################################################################
+#  JJ
+# Trabajo con los contratos de valor > 0
+dfm = df[df["valor_del_contrato"] > 0].copy()
+
+# --- Descriptivo: número de contratos y valor por modalidad ---
+resumen = (
+    dfm.groupby("modalidad_de_contratacion")["valor_del_contrato"]
+    .agg(n="count", valor_total="sum", valor_mediano="median")
+    .sort_values("valor_total", ascending=False)
+)
+resumen["pct_valor"] = (resumen["valor_total"] / resumen["valor_total"].sum() * 100).round(1)
+resumen["pct_contratos"] = (resumen["n"] / resumen["n"].sum() * 100).round(1)
+print("\nContratación por modalidad:")
+print(resumen.to_string())
+
+print("\nDirecta vs competitiva (es_directa):")
+print(dfm.groupby("es_directa")["valor_del_contrato"].agg(n="count", valor_total="sum", valor_mediano="median"))
+
+# --- Duración mediana por modalidad ---
+print("\nDuración mediana (días) por modalidad:")
+print(dfm.groupby("modalidad_de_contratacion")["duracion_dias"].median().sort_values(ascending=False))
+
+# Gráfica 1: valor total por modalidad
+plt.figure(figsize=(10, 6))
+datos = resumen.sort_values("valor_total")
+plt.barh(datos.index, datos["valor_total"] / 1e9, edgecolor="black")
+plt.title("Valor total contratado por modalidad")
+plt.xlabel("Miles de millones de pesos")
+plt.tight_layout()
+plt.savefig("grafica_15.png", dpi=120, bbox_inches="tight"); plt.close()
+
+# Gráfica 2: distribución del valor por modalidad 
+top = dfm["modalidad_de_contratacion"].value_counts().head(5).index
+dt = dfm[dfm["modalidad_de_contratacion"].isin(top)].copy()
+dt["log_valor"] = np.log1p(dt["valor_del_contrato"])
+plt.figure(figsize=(10, 6))
+sns.boxplot(data=dt, y="modalidad_de_contratacion", x="log_valor", showfliers=False)
+plt.title("Distribución del valor por modalidad (escala logarítmica)")
+plt.xlabel("Log(1 + valor del contrato)")
+plt.ylabel("")
+plt.tight_layout()
+plt.savefig("grafica_16.png", dpi=120, bbox_inches="tight"); plt.close()
+
+#Relación valor - duración: correlación y su mapa de calor 
+dfd = dfm[dfm["duracion_dias"].notna() & (dfm["duracion_dias"] >= 0)].copy()
+corr = dfd[["valor_del_contrato", "duracion_dias", "dias_adicionados"]].corr(method="spearman")
+plt.figure(figsize=(6, 5))
+sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", center=0)
+plt.title("Correlación (Spearman) entre valor, duración y días adicionados")
+plt.tight_layout()
+plt.savefig("grafica_17.png", dpi=120, bbox_inches="tight"); plt.close()
+
+rho, p = stats.spearmanr(dfd["valor_del_contrato"], dfd["duracion_dias"])
+print(f"\nCorrelación valor-duración (Spearman): rho = {rho:.3f}, p = {p:.3g}")
+
+# regresión lineal del (log) valor
+dfd["log_valor"] = np.log1p(dfd["valor_del_contrato"])
+modelo = ols("log_valor ~ duracion_dias + es_directa", data=dfd).fit()
+print("\nRegresión: log(1 + valor) ~ duración + es_directa")
+print(modelo.summary().tables[1])
+print(f"R2 = {modelo.rsquared:.3f}")
