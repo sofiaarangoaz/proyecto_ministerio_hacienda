@@ -224,6 +224,27 @@ ejecucion_mediana_nopyme = df_ejec.loc[df_ejec["es_pyme"] == "No", "pct_ejecucio
 contratos_con_ejecucion = len(df_ejec)
 
 
+# Heatmap: porcentaje de ejecucion promedio por condicion PyME y genero del representante
+pivot_ejecucion = df_ejec.pivot_table(
+    index="es_pyme",
+    columns="g_nero_representante_legal",
+    values="pct_ejecucion",
+    aggfunc="mean"
+).round(1)
+
+fig_heatmap_ejecucion = px.imshow(
+    pivot_ejecucion,
+    text_auto=True,
+    color_continuous_scale="YlGnBu",
+    title="Porcentaje de ejecución promedio: PyME x Género",
+    labels={
+        "x": "Género del representante legal",
+        "y": "¿Es PyME?",
+        "color": "% ejecución"
+    }
+)
+
+
 app.layout = html.Div(children=[
     html.H1(children='Contratación del Ministerio de Hacienda y Crédito Público'),
 
@@ -524,6 +545,11 @@ dcc.Graph(
 dcc.Graph(
     id="grafica-box-ejecucion",
     figure=fig_box_ejecucion
+),
+
+dcc.Graph(
+    id="grafica-heatmap-ejecucion",
+    figure=fig_heatmap_ejecucion
 )
 
 ])
