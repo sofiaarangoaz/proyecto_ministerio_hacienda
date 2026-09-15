@@ -1,0 +1,12 @@
+[Unit]
+Description=Gunicorn para tablero Dash
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/mi_tablero
+ExecStart=/home/ubuntu/mi_tablero/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8050 app:server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
